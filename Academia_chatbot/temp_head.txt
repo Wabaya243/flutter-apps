@@ -1,0 +1,54 @@
+
+  Future<void> _loadArchive() async {
+    final prefs = await SharedPreferences.getInstance();
+    final s = prefs.getString(_archiveKey);
+    if (s != null && s.isNotEmpty) {
+      try {
+        final list = jsonDecode(s) as List<dynamic>;
+        setState(() {
+          _archive = list.map((e) => e as Map<String, dynamic>).toList();
+        });
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _saveArchive() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_archiveKey, jsonEncode(_archive));
+  }
+
+  String _titleFromMessages(List<Message> msgs) {
+    try {
+      final firstUser = msgs.firstWhere((m) => m.isUser).text.trim();
+      if (firstUser.isEmpty) return 'Nouvelle conversation';
+      return firstUser.length > 32 ? firstUser.substring(0, 32) : firstUser;
+    } catch (_) {
+      return 'Nouvelle conversation';
+    }
+  }
+
+  Future<void> _newConversation() async {
+    if (_messages.isNotEmpty) {
+      final item = <String, dynamic>{
+        'title': _titleFromMessages(_messages),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'messages': Message.listToJsonString(_messages),
+      };
+      setState(() { _archive.insert(0, item); });
+      await _saveArchive();
+    }
+    setState(() => _messages.clear());
+    await _persistMessages();
+    _scrollToBottom();
+    if (Navigator.canPop(context)) Navigator.of(context).maybePop();
+  }
+
+  Future<void> _openArchived(int index) async {
+    if (index < 0 || index >= _archive.length) return;
+    final str = _archive[index]['messages'] as String?;
+    final msgs = Message.listFromJsonString(str);
+    setState(() { _messages..clear()..addAll(msgs); });
+    await _persistMessages();
+    _scrollToBottom();
+    if (Navigator.canPop(context)) Navigator.of(context).maybePop();
+  }

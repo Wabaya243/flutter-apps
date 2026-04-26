@@ -1,0 +1,8 @@
+// Configuration centrale de l’API
+
+const String kApiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  // Emulateur Android -> hôte local
+  defaultValue: 'http://10.0.2.2:8000',
+);
+
